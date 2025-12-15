@@ -21,7 +21,14 @@
    ```
    默认监听端口为 `5000`，可在命令末尾追加端口号修改。
 
-3. **启动 4 个客户端（示例）**
+3. **启动网页前端与接口服务**
+   ```bash
+   java -cp target/train-ticket-system-1.0-SNAPSHOT.jar:~/.m2/repository/org/xerial/sqlite-jdbc/3.45.2.0/sqlite-jdbc-3.45.2.0.jar \
+        com.example.tickets.TicketWebServer
+   ```
+   默认监听端口为 `8080`，可通过传入端口参数或设置环境变量 `PORT` 覆盖。启动后浏览器访问 `http://localhost:8080/` 即可查看数据库中现有记录，并新增一条记录（会同时写入服务器日志文件与 SQLite 数据库）。
+
+4. **启动 4 个客户端（示例）**
    - 示例购票文件已放在 `client_data/client1.txt` ~ `client4.txt`。
    - 在新的终端运行：
      ```bash
@@ -32,7 +39,7 @@
      java -cp target/train-ticket-system-1.0-SNAPSHOT.jar com.example.tickets.TicketClient client_data/client1.txt
      ```
 
-4. **查看服务端存储的数据**
+5. **查看服务端存储的数据**
    ```bash
    java -cp target/train-ticket-system-1.0-SNAPSHOT.jar:~/.m2/repository/org/xerial/sqlite-jdbc/3.45.2.0/sqlite-jdbc-3.45.2.0.jar \
         com.example.tickets.ServerDataViewer

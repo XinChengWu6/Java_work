@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>火车售票记录查看</title>
+    <style>
+        :root {
+            font-family: "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+            color: #1f2937;
+            background-color: #f9fafb;
+        }
+
+        body {
+            margin: 0;
+            padding: 0 1rem 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 960px;
+            margin-inline: auto;
+        }
+
+        header {
+            background: linear-gradient(120deg, #2563eb, #10b981);
+            color: #fff;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.25);
+        }
+
+        h1 { margin: 0; font-size: 1.8rem; }
+        p { margin: 0.25rem 0 0; color: rgba(255, 255, 255, 0.9); }
+
+        section {
+            background: #fff;
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            align-items: end;
+        }
+
+        label {
+            display: flex;
+            flex-direction: column;
+            font-weight: 600;
+            gap: 0.5rem;
+        }
+
+        input {
+            padding: 0.65rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+
+        button {
+            padding: 0.8rem 1.2rem;
+            background: linear-gradient(120deg, #2563eb, #10b981);
+            color: #fff;
+            border: none;
+            border-radius: 0.6rem;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        button:hover { transform: translateY(-1px); box-shadow: 0 12px 26px rgba(37, 99, 235, 0.35); }
+        button:active { transform: translateY(0); box-shadow: 0 8px 18px rgba(37, 99, 235, 0.3); }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th, td {
+            padding: 0.9rem 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            background-color: #f3f4f6;
+            font-weight: 700;
+            color: #374151;
+        }
+
+        tbody tr:hover { background-color: #f9fafb; }
+
+        .status {
+            font-size: 0.95rem;
+            color: #059669;
+            display: none;
+        }
+
+        .status.error { color: #dc2626; }
+
+        .empty-state {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f9fafb;
+            border: 1px dashed #d1d5db;
+            border-radius: 0.5rem;
+            color: #6b7280;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>火车售票记录查看</h1>
+    <p>查看服务端数据库中的购票记录，并可新增一条测试数据</p>
+</header>
+
+<section>
+    <h2>新增购票记录</h2>
+    <form id="ticket-form">
+        <label>姓名
+            <input name="name" required placeholder="张三" autocomplete="name">
+        </label>
+        <label>身份证号
+            <input name="idNumber" required placeholder="1234567890" autocomplete="off">
+        </label>
+        <label>出发城市
+            <input name="fromCity" required placeholder="上海">
+        </label>
+        <label>到达城市
+            <input name="toCity" required placeholder="北京">
+        </label>
+        <button type="submit">提交</button>
+    </form>
+    <div id="status" class="status"></div>
+</section>
+
+<section>
+    <h2>数据库记录</h2>
+    <div id="empty" class="empty-state">暂无记录</div>
+    <table id="ticket-table" style="display:none">
+        <thead>
+        <tr>
+            <th>姓名</th>
+            <th>身份证号</th>
+            <th>出发城市</th>
+            <th>到达城市</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</section>
+
+<script>
+    const form = document.getElementById('ticket-form');
+    const table = document.getElementById('ticket-table');
+    const tbody = table.querySelector('tbody');
+    const empty = document.getElementById('empty');
+    const status = document.getElementById('status');
+
+    async function fetchTickets() {
+        const res = await fetch('/api/tickets');
+        const data = await res.json();
+        renderTickets(data.tickets || []);
+    }
+
+    function renderTickets(tickets) {
+        tbody.innerHTML = '';
+        if (!tickets.length) {
+            empty.style.display = 'block';
+            table.style.display = 'none';
+            return;
+        }
+        empty.style.display = 'none';
+        table.style.display = '';
+        tickets.forEach(ticket => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${escapeHtml(ticket.name)}</td>
+                <td>${escapeHtml(ticket.idNumber)}</td>
+                <td>${escapeHtml(ticket.fromCity)}</td>
+                <td>${escapeHtml(ticket.toCity)}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        status.style.display = 'none';
+        const formData = new FormData(form);
+        const payload = Object.fromEntries(formData.entries());
+        const res = await fetch('/api/tickets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+            status.textContent = '保存成功！';
+            status.classList.remove('error');
+            form.reset();
+            await fetchTickets();
+        } else {
+            status.textContent = '保存失败，请检查输入。';
+            status.classList.add('error');
+        }
+        status.style.display = 'block';
+    });
+
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    fetchTickets();
+</script>
+</body>
+</html>
